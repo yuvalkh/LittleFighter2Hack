@@ -2,6 +2,8 @@
 
 #include <Windows.h>
 #include <TlHelp32.h>
+#include <iostream>
+#include <psapi.h>
 
 //THIS FILE SIMPLY DOES MOST OF THE BACKEND WORK FOR US,
 //FROM FINDING THE PROCESS TO SETTING UP CORRECT ACCESS FOR US
@@ -10,7 +12,7 @@
 //This file has been online for quite a while so credits should be shared but im using this from NubTIK
 //So Credits to him and thanks
 
-
+using namespace std;
 
 class CHackProcess
 {
@@ -115,7 +117,63 @@ public:
 		CloseHandle(__HandleProcess);
 	}
 
+	int PrintModules(DWORD processID)
+	{
+		HMODULE hMods[1024];
+		HANDLE hProcess;
+		DWORD cbNeeded;
+		unsigned int i;
 
+		// Print the process identifier.
+
+		printf("\nProcess ID: %u\n", processID);
+
+		// Get a handle to the process.
+
+		hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
+		if (NULL == hProcess) 
+		{
+			return 1;
+		}
+		/*else if (GetLastError() == ERROR_ACCESS_DENIED)
+		{
+			std::cout << "Can't do that." << std::endl;
+		}
+		else
+		{
+			DWORD lastError = GetLastError();
+			//You have to cache the value of the last error here, because the call to
+			//operator<<(std::ostream&, const char *) may cause the last error to be set
+			//to something else.
+			std::cout << "General failure. GetLastError returned " << std::hex
+				<< lastError << ".";
+		}*/
+		// Get a list of all the modules in this process.
+
+		if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
+		{
+			for (i = 0; i < (cbNeeded / sizeof(HMODULE)); i++)
+			{
+				TCHAR szModName[MAX_PATH];
+
+				// Get the full path to the module's file.
+
+				if (GetModuleFileNameEx(hProcess, hMods[i], szModName,
+					sizeof(szModName) / sizeof(TCHAR)))
+				{
+					// Print the module name and handle value.
+
+					_tprintf(TEXT("\t%s (0x%08X)\n"), szModName, hMods[i]);
+				}
+			}
+		}
+
+		// Release the handle to the process.
+
+		CloseHandle(hProcess);
+
+		return 0;
+	}
 
 	void RunProcess(const char *ProcessName,LPCWSTR WindowName)
 	{
@@ -124,11 +182,11 @@ public:
 		while (!FindProcessName(ProcessName, &__gameProcess)) Sleep(12);
 		while (!(getThreadByProcess(__gameProcess.th32ProcessID))) Sleep(12);
 		__HandleProcess = OpenProcess(PROCESS_ALL_ACCESS, false, __gameProcess.th32ProcessID);
-		// while (__dwordClient == 0x0) __dwordClient = GetModuleNamePointer((LPSTR)"client.dll", __gameProcess.th32ProcessID);
+		//while (__dwordClient == 0x0) __dwordClient = GetModuleNamePointer((LPSTR)"client.dll", __gameProcess.th32ProcessID);
 		////  while (__dwordEngine == 0x0) __dwordEngine = GetModuleNamePointer((LPSTR)"engine.dll", __gameProcess.th32ProcessID);
-		//while(__dwordOverlay == 0x0) __dwordOverlay = GetModuleNamePointer("gameoverlayrenderer.dll", __gameProcess.th32ProcessID);
+		//while(__dwordOverlay == 0x0) __dwordOverlay = GetModuleNamePointer((LPSTR)"gameoverlayrenderer.dll", __gameProcess.th32ProcessID);
 		////  while (__dwordVGui == 0x0) __dwordVGui = GetModuleNamePointer((LPSTR)"vguimatsurface.dll", __gameProcess.th32ProcessID);
-		//while(__dwordLibCef == 0x0) __dwordLibCef = GetModuleNamePointer("libcef.dll", __gameProcess.th32ProcessID);
+		//while(__dwordLibCef == 0x0) __dwordLibCef = GetModuleNamePointer((LPSTR)"libcef.dll", __gameProcess.th32ProcessID);
 		////  while(__dwordSteam == 0x0) __dwordSteam = GetModuleNamePointer("steam.dll", __gameProcess.th32ProcessID);
 		__HWNDCss = FindWindow(NULL, WindowName);
 	}
